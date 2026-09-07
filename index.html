@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0b2239">
+  <title>Sprint Reaction Trainer</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="panel">
+      <h1>Sprint Reaction Trainer</h1>
+      <p id="status" class="status">Place your thumb and hold</p>
+
+      <div id="reactionCard" class="reaction-card" aria-live="polite">
+        <span class="label">Reaction Time</span>
+        <span id="reactionValue" class="value">-- ms</span>
+      </div>
+
+      <button id="thumbButton" class="thumb-button" aria-label="Thumb hold button">
+        <span id="thumbLabel">THUMB</span>
+      </button>
+
+      <div class="controls">
+        <button id="resetButton" class="reset-button">Reset</button>
+        <button id="settingsButton" class="settings-button">Settings</button>
+      </div>
+
+      <p class="hint">Hold the button while set in your 4-point start. Release exactly on GO.</p>
+    </section>
+  </main>
+
+  <section id="settingsSheet" class="sheet hidden" aria-hidden="true">
+    <div class="sheet-card">
+      <h2>Timing Settings</h2>
+
+      <label class="field" for="initialDelayInput">
+        Initial hold before "On your mark" (ms)
+      </label>
+      <input id="initialDelayInput" class="number-input" type="number" min="0" max="10000" step="50" inputmode="numeric">
+
+      <label class="field" for="markToSetInput">
+        "On your mark" to "Get set" (ms)
+      </label>
+      <input id="markToSetInput" class="number-input" type="number" min="200" max="10000" step="50" inputmode="numeric">
+
+      <label class="field" for="setToGoInput">
+        "Get set" to gunshot GO (ms)
+      </label>
+      <input id="setToGoInput" class="number-input" type="number" min="200" max="10000" step="50" inputmode="numeric">
+
+      <label class="field" for="sampleAudioUrlInput">
+        Optional real countdown sample URL/path
+      </label>
+      <input id="sampleAudioUrlInput" class="text-input" type="text" placeholder="assets/meet-countdown.mp3" autocapitalize="off" autocomplete="off" spellcheck="false">
+
+      <label class="field" for="sampleGunshotOffsetInput">
+        Gunshot moment in sample (ms from sample start)
+      </label>
+      <input id="sampleGunshotOffsetInput" class="number-input" type="number" min="100" max="30000" step="50" inputmode="numeric">
+
+      <div class="sheet-actions">
+        <button id="cancelSettingsButton" class="sheet-cancel">Cancel</button>
+        <button id="saveSettingsButton" class="sheet-save">Save</button>
+      </div>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>

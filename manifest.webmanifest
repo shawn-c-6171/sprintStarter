@@ -1,0 +1,9 @@
+{
+  "name": "Sprint Reaction Trainer",
+  "short_name": "SprintRT",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#d7e6f8",
+  "theme_color": "#0b2239",
+  "description": "Hold, countdown, release on GO, and measure sprint reaction time."
+}

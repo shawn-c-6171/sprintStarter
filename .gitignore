@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Local tooling
+node_modules/
+dist/
+build/
+
+# Logs
+*.log

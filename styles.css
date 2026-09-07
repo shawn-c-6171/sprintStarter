@@ -1,0 +1,263 @@
+:root {
+  --bg-a: #f4f7fb;
+  --bg-b: #d7e6f8;
+  --ink: #0f1720;
+  --muted: #4d5c6b;
+  --primary-a: #1b6ecf;
+  --primary-b: #0f3f7a;
+  --hold-a: #129148;
+  --hold-b: #0b5a2e;
+  --warn: #bf1d1d;
+  --go: #0f7f2f;
+  --card: rgba(255, 255, 255, 0.72);
+  --card-edge: rgba(255, 255, 255, 0.9);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: "Avenir Next", "SF Pro Text", "Helvetica Neue", sans-serif;
+  color: var(--ink);
+  touch-action: manipulation;
+}
+
+body {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(255, 255, 255, 0.75), transparent 40%),
+    radial-gradient(circle at 90% 85%, rgba(255, 255, 255, 0.6), transparent 33%),
+    linear-gradient(145deg, var(--bg-a), var(--bg-b));
+  display: grid;
+  place-items: center;
+  padding: env(safe-area-inset-top) 14px env(safe-area-inset-bottom);
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 460px;
+}
+
+.panel {
+  backdrop-filter: blur(8px);
+  background: var(--card);
+  border: 1px solid var(--card-edge);
+  border-radius: 26px;
+  padding: 20px 20px 24px;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.14);
+  text-align: center;
+}
+
+h1 {
+  margin: 4px 0 14px;
+  font-size: clamp(1.65rem, 4.6vw, 2rem);
+  letter-spacing: 0.02em;
+}
+
+.status {
+  margin: 0 0 14px;
+  font-size: clamp(1.3rem, 5vw, 1.7rem);
+  font-weight: 800;
+  min-height: 2.1em;
+}
+
+.status.go {
+  color: var(--go);
+}
+
+.status.false {
+  color: var(--warn);
+}
+
+.reaction-card {
+  margin: 0 auto 18px;
+  width: min(100%, 320px);
+  border: 1px solid rgba(15, 23, 32, 0.1);
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.reaction-card .label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.reaction-card .value {
+  display: block;
+  margin-top: 2px;
+  font-size: clamp(1.65rem, 6.2vw, 2.1rem);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.thumb-button {
+  width: min(70vw, 270px);
+  height: min(70vw, 270px);
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  font-size: clamp(1.7rem, 7vw, 2.2rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  background: radial-gradient(circle at 25% 22%, var(--primary-a), var(--primary-b));
+  box-shadow:
+    inset 0 2px 12px rgba(255, 255, 255, 0.35),
+    0 12px 24px rgba(13, 43, 82, 0.35);
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.thumb-button:active,
+.thumb-button.holding {
+  background: radial-gradient(circle at 25% 22%, var(--hold-a), var(--hold-b));
+  transform: scale(0.98);
+  box-shadow:
+    inset 0 2px 10px rgba(255, 255, 255, 0.25),
+    0 6px 16px rgba(11, 52, 27, 0.35);
+}
+
+.controls {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.reset-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 24px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: #244564;
+}
+
+.settings-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 20px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #102131;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(16, 33, 49, 0.18);
+}
+
+.hint {
+  margin: 16px 0 0;
+  font-size: 0.96rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: end center;
+  background: rgba(7, 15, 24, 0.42);
+  padding: 14px;
+}
+
+.sheet.hidden {
+  display: none;
+}
+
+.sheet-card {
+  width: min(100%, 520px);
+  background: #f8fbff;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(10, 28, 44, 0.12);
+}
+
+.sheet-card h2 {
+  margin: 2px 0 12px;
+  font-size: 1.3rem;
+}
+
+.field {
+  display: block;
+  text-align: left;
+  margin: 10px 2px 6px;
+  font-size: 0.92rem;
+  color: #1f3347;
+  font-weight: 650;
+}
+
+.number-input {
+  width: 100%;
+  border: 1px solid rgba(16, 33, 49, 0.25);
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  background: #fff;
+}
+
+.text-input {
+  width: 100%;
+  border: 1px solid rgba(16, 33, 49, 0.25);
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-size: 0.95rem;
+  font-weight: 550;
+  background: #fff;
+}
+
+.sheet-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.sheet-cancel,
+.sheet-save {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.sheet-cancel {
+  color: #162537;
+  background: #d9e6f6;
+}
+
+.sheet-save {
+  color: #fff;
+  background: #1c5ba4;
+}
+
+@media (max-width: 390px) {
+  .panel {
+    padding: 16px 14px 20px;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .reset-button,
+  .settings-button {
+    width: 100%;
+    max-width: 220px;
+  }
+}
