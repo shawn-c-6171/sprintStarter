@@ -219,6 +219,17 @@ h1 {
   background: #fff;
 }
 
+.select-input {
+  width: 100%;
+  border: 1px solid rgba(16, 33, 49, 0.25);
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: #fff;
+  color: #0f1720;
+}
+
 .sheet-actions {
   margin-top: 14px;
   display: flex;

@@ -9,6 +9,10 @@ SprintStarter is a mobile-first web app for practicing sprint-start reaction tim
 - On GO, release immediately.
 - It calculates and shows your reaction time in milliseconds.
 - Releasing before GO is marked as a false start.
+- Includes two modes in Settings:
+	- Hold to start, release on GO
+	- Tap to start, tap on GO (no continuous hold)
+- Gunshot intensity is configurable in Settings (50% to 200%).
 
 ## Run locally
 

@@ -2,14 +2,17 @@ const statusEl = document.getElementById("status");
 const reactionValueEl = document.getElementById("reactionValue");
 const thumbButton = document.getElementById("thumbButton");
 const thumbLabel = document.getElementById("thumbLabel");
+const hintText = document.getElementById("hintText");
 const resetButton = document.getElementById("resetButton");
 const settingsButton = document.getElementById("settingsButton");
 const settingsSheet = document.getElementById("settingsSheet");
+const startModeSelect = document.getElementById("startModeSelect");
 const initialDelayInput = document.getElementById("initialDelayInput");
 const markToSetInput = document.getElementById("markToSetInput");
 const setToGoInput = document.getElementById("setToGoInput");
 const sampleAudioUrlInput = document.getElementById("sampleAudioUrlInput");
 const sampleGunshotOffsetInput = document.getElementById("sampleGunshotOffsetInput");
+const gunshotIntensityInput = document.getElementById("gunshotIntensityInput");
 const cancelSettingsButton = document.getElementById("cancelSettingsButton");
 const saveSettingsButton = document.getElementById("saveSettingsButton");
 
@@ -20,11 +23,13 @@ let countdownTimeouts = [];
 
 const settingsStorageKey = "sprint-trainer-settings-v1";
 const defaultSettings = {
+  startMode: "hold",
   initialDelayMs: 500,
   markToSetMs: 1100,
   setToGoMs: 1300,
   sampleAudioUrl: "",
   sampleGunshotOffsetMs: 2400,
+  gunshotIntensity: 125,
 };
 let timingSettings = loadSettings();
 let activeSampleAudio = null;
@@ -64,11 +69,13 @@ function loadSettings() {
 
     const parsed = JSON.parse(saved);
     return {
+      startMode: parsed.startMode === "tap" ? "tap" : "hold",
       initialDelayMs: sanitizeMs(parsed.initialDelayMs, 0, 10000, defaultSettings.initialDelayMs),
       markToSetMs: sanitizeMs(parsed.markToSetMs, 200, 10000, defaultSettings.markToSetMs),
       setToGoMs: sanitizeMs(parsed.setToGoMs, 200, 10000, defaultSettings.setToGoMs),
       sampleAudioUrl: typeof parsed.sampleAudioUrl === "string" ? parsed.sampleAudioUrl.trim() : "",
       sampleGunshotOffsetMs: sanitizeMs(parsed.sampleGunshotOffsetMs, 100, 30000, defaultSettings.sampleGunshotOffsetMs),
+      gunshotIntensity: sanitizeMs(parsed.gunshotIntensity, 50, 200, defaultSettings.gunshotIntensity),
     };
   } catch (error) {
     return { ...defaultSettings };
@@ -80,11 +87,25 @@ function saveSettings() {
 }
 
 function fillSettingsInputs() {
+  startModeSelect.value = timingSettings.startMode;
   initialDelayInput.value = String(timingSettings.initialDelayMs);
   markToSetInput.value = String(timingSettings.markToSetMs);
   setToGoInput.value = String(timingSettings.setToGoMs);
   sampleAudioUrlInput.value = timingSettings.sampleAudioUrl;
   sampleGunshotOffsetInput.value = String(timingSettings.sampleGunshotOffsetMs);
+  gunshotIntensityInput.value = String(timingSettings.gunshotIntensity);
+}
+
+function isTapMode() {
+  return timingSettings.startMode === "tap";
+}
+
+function applyModeText() {
+  if (isTapMode()) {
+    hintText.textContent = "Tap once to arm your start. Tap again exactly on GO.";
+  } else {
+    hintText.textContent = "Hold the button while set in your 4-point start. Release exactly on GO.";
+  }
 }
 
 function openSettings() {
@@ -116,7 +137,7 @@ function beep(freq = 880, duration = 120) {
   gain.connect(ctx.destination);
 
   const now = ctx.currentTime;
-  gain.gain.exponentialRampToValueAtTime(0.13, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + duration / 1000);
 
   oscillator.start(now);
@@ -135,7 +156,7 @@ function speakCue(text) {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = 0.9;
   utterance.pitch = 0.85;
-  utterance.volume = 1;
+  utterance.volume = 0.72;
   window.speechSynthesis.speak(utterance);
 }
 
@@ -148,6 +169,7 @@ function playGunshotCue() {
 
   const ctx = new AudioContextCtor();
   const duration = 0.32;
+  const intensity = timingSettings.gunshotIntensity / 100;
   const sampleRate = ctx.sampleRate;
   const frameCount = Math.floor(sampleRate * duration);
   const buffer = ctx.createBuffer(1, frameCount, sampleRate);
@@ -176,6 +198,33 @@ function playGunshotCue() {
   const gain = ctx.createGain();
   gain.gain.value = 0.0001;
 
+  const crack = ctx.createOscillator();
+  crack.type = "square";
+  crack.frequency.setValueAtTime(1600, ctx.currentTime);
+  crack.frequency.exponentialRampToValueAtTime(240, ctx.currentTime + 0.06);
+
+  const crackGain = ctx.createGain();
+  crackGain.gain.value = 0.0001;
+
+  const preMaster = ctx.createGain();
+  preMaster.gain.value = 1;
+
+  const clipper = ctx.createWaveShaper();
+  const curve = new Float32Array(2048);
+  for (let i = 0; i < curve.length; i += 1) {
+    const x = (i * 2) / (curve.length - 1) - 1;
+    curve[i] = Math.tanh(4.2 * x);
+  }
+  clipper.curve = curve;
+  clipper.oversample = "4x";
+
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.setValueAtTime(-3, ctx.currentTime);
+  limiter.knee.setValueAtTime(0, ctx.currentTime);
+  limiter.ratio.setValueAtTime(20, ctx.currentTime);
+  limiter.attack.setValueAtTime(0.001, ctx.currentTime);
+  limiter.release.setValueAtTime(0.06, ctx.currentTime);
+
   const compressor = ctx.createDynamicsCompressor();
   compressor.threshold.setValueAtTime(-12, ctx.currentTime);
   compressor.knee.setValueAtTime(20, ctx.currentTime);
@@ -187,20 +236,30 @@ function playGunshotCue() {
   highpass.connect(gain);
   thump.connect(thumpGain);
 
+  crack.connect(crackGain);
+
   gain.connect(compressor);
   thumpGain.connect(compressor);
-  compressor.connect(ctx.destination);
+  crackGain.connect(compressor);
+  compressor.connect(preMaster);
+  preMaster.connect(clipper);
+  clipper.connect(limiter);
+  limiter.connect(ctx.destination);
 
   const now = ctx.currentTime;
-  gain.gain.exponentialRampToValueAtTime(1, now + 0.003);
+  gain.gain.exponentialRampToValueAtTime(1.45 * intensity, now + 0.0025);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-  thumpGain.gain.exponentialRampToValueAtTime(0.95, now + 0.006);
+  thumpGain.gain.exponentialRampToValueAtTime(1.15 * intensity, now + 0.004);
   thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.19);
+  crackGain.gain.exponentialRampToValueAtTime(1.1 * intensity, now + 0.0015);
+  crackGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
 
   noise.start(now);
   noise.stop(now + duration);
   thump.start(now);
   thump.stop(now + 0.2);
+  crack.start(now);
+  crack.stop(now + 0.06);
 
   noise.onended = () => {
     ctx.close();
@@ -283,6 +342,10 @@ function startCountdown() {
 
 function onHoldStart(event) {
   event.preventDefault();
+  if (isTapMode()) {
+    return;
+  }
+
   if (isHolding) {
     return;
   }
@@ -298,6 +361,10 @@ function onHoldStart(event) {
 
 function onHoldEnd(event) {
   event.preventDefault();
+  if (isTapMode()) {
+    return;
+  }
+
   if (!isHolding) {
     return;
   }
@@ -324,6 +391,46 @@ function onHoldEnd(event) {
   }
 }
 
+function onTapModePress(event) {
+  event.preventDefault();
+  if (!isTapMode()) {
+    return;
+  }
+
+  if (phase === "ready" || phase === "result" || phase === "false") {
+    isHolding = true;
+    thumbButton.classList.add("holding");
+    thumbLabel.textContent = "ARMED";
+    setReaction(null);
+    goTime = null;
+    startCountdown();
+    return;
+  }
+
+  if (phase === "counting") {
+    clearCountdown();
+    phase = "false";
+    isHolding = false;
+    thumbButton.classList.remove("holding");
+    thumbLabel.textContent = "THUMB";
+    updateStatus("False start", "false");
+    beep(300, 200);
+    vibrate([25, 60, 25]);
+    return;
+  }
+
+  if (phase === "go" && goTime !== null) {
+    const reactionMs = Math.max(0, Math.round(performance.now() - goTime));
+    setReaction(reactionMs);
+    phase = "result";
+    isHolding = false;
+    thumbButton.classList.remove("holding");
+    thumbLabel.textContent = "THUMB";
+    updateStatus("Nice start");
+    vibrate(50);
+  }
+}
+
 function resetSession() {
   clearCountdown();
   phase = "ready";
@@ -332,16 +439,18 @@ function resetSession() {
   thumbButton.classList.remove("holding");
   thumbLabel.textContent = "THUMB";
   setReaction(null);
-  updateStatus("Place your thumb and hold");
+  updateStatus(isTapMode() ? "Tap to arm your start" : "Place your thumb and hold");
 }
 
 function applySettingsFromInputs() {
   timingSettings = {
+    startMode: startModeSelect.value === "tap" ? "tap" : "hold",
     initialDelayMs: sanitizeMs(initialDelayInput.value, 0, 10000, timingSettings.initialDelayMs),
     markToSetMs: sanitizeMs(markToSetInput.value, 200, 10000, timingSettings.markToSetMs),
     setToGoMs: sanitizeMs(setToGoInput.value, 200, 10000, timingSettings.setToGoMs),
     sampleAudioUrl: sampleAudioUrlInput.value.trim(),
     sampleGunshotOffsetMs: sanitizeMs(sampleGunshotOffsetInput.value, 100, 30000, timingSettings.sampleGunshotOffsetMs),
+    gunshotIntensity: sanitizeMs(gunshotIntensityInput.value, 50, 200, timingSettings.gunshotIntensity),
   };
   saveSettings();
 }
@@ -350,18 +459,20 @@ thumbButton.addEventListener("pointerdown", onHoldStart);
 thumbButton.addEventListener("pointerup", onHoldEnd);
 thumbButton.addEventListener("pointercancel", onHoldEnd);
 thumbButton.addEventListener("lostpointercapture", onHoldEnd);
+thumbButton.addEventListener("click", onTapModePress);
 
 resetButton.addEventListener("click", resetSession);
 settingsButton.addEventListener("click", openSettings);
 cancelSettingsButton.addEventListener("click", closeSettings);
 saveSettingsButton.addEventListener("click", () => {
   applySettingsFromInputs();
+  applyModeText();
   closeSettings();
   if (!isHolding) {
     updateStatus("Settings saved");
     setTimeout(() => {
       if (!isHolding && phase !== "go") {
-        updateStatus("Place your thumb and hold");
+        updateStatus(isTapMode() ? "Tap to arm your start" : "Place your thumb and hold");
       }
     }, 700);
   }
@@ -385,3 +496,5 @@ window.addEventListener("contextmenu", (event) => {
 });
 
 fillSettingsInputs();
+applyModeText();
+resetSession();

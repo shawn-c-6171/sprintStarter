@@ -30,13 +30,21 @@
         <button id="settingsButton" class="settings-button">Settings</button>
       </div>
 
-      <p class="hint">Hold the button while set in your 4-point start. Release exactly on GO.</p>
+      <p id="hintText" class="hint">Hold the button while set in your 4-point start. Release exactly on GO.</p>
     </section>
   </main>
 
   <section id="settingsSheet" class="sheet hidden" aria-hidden="true">
     <div class="sheet-card">
       <h2>Timing Settings</h2>
+
+      <label class="field" for="startModeSelect">
+        Start mode
+      </label>
+      <select id="startModeSelect" class="select-input">
+        <option value="hold">Hold to start, release on GO</option>
+        <option value="tap">Tap to start, tap on GO</option>
+      </select>
 
       <label class="field" for="initialDelayInput">
         Initial hold before "On your mark" (ms)
@@ -62,6 +70,11 @@
         Gunshot moment in sample (ms from sample start)
       </label>
       <input id="sampleGunshotOffsetInput" class="number-input" type="number" min="100" max="30000" step="50" inputmode="numeric">
+
+      <label class="field" for="gunshotIntensityInput">
+        Gunshot intensity (%)
+      </label>
+      <input id="gunshotIntensityInput" class="number-input" type="number" min="50" max="200" step="5" inputmode="numeric">
 
       <div class="sheet-actions">
         <button id="cancelSettingsButton" class="sheet-cancel">Cancel</button>
