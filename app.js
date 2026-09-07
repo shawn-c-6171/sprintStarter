@@ -341,10 +341,12 @@ function startCountdown() {
 }
 
 function onHoldStart(event) {
-  event.preventDefault();
   if (isTapMode()) {
+    onTapModePress(event);
     return;
   }
+
+  event.preventDefault();
 
   if (isHolding) {
     return;
@@ -360,10 +362,11 @@ function onHoldStart(event) {
 }
 
 function onHoldEnd(event) {
-  event.preventDefault();
   if (isTapMode()) {
     return;
   }
+
+  event.preventDefault();
 
   if (!isHolding) {
     return;
@@ -459,7 +462,6 @@ thumbButton.addEventListener("pointerdown", onHoldStart);
 thumbButton.addEventListener("pointerup", onHoldEnd);
 thumbButton.addEventListener("pointercancel", onHoldEnd);
 thumbButton.addEventListener("lostpointercapture", onHoldEnd);
-thumbButton.addEventListener("click", onTapModePress);
 
 resetButton.addEventListener("click", resetSession);
 settingsButton.addEventListener("click", openSettings);
