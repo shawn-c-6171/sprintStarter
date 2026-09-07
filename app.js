@@ -20,6 +20,9 @@ let phase = "ready";
 let isHolding = false;
 let goTime = null;
 let countdownTimeouts = [];
+let motionListenerActive = false;
+let motionDetected = false;
+let motionPermissionState = "unknown";
 
 const settingsStorageKey = "sprint-trainer-settings-v1";
 const defaultSettings = {
@@ -102,10 +105,89 @@ function isTapMode() {
 
 function applyModeText() {
   if (isTapMode()) {
-    hintText.textContent = "Tap once to arm your start. Tap again exactly on GO.";
+    hintText.textContent = "Tap once to arm. On GO, sprint immediately. Reaction auto-detects from motion.";
   } else {
     hintText.textContent = "Hold the button while set in your 4-point start. Release exactly on GO.";
   }
+}
+
+async function ensureMotionPermission() {
+  if (!isTapMode()) {
+    return true;
+  }
+
+  if (typeof DeviceMotionEvent === "undefined") {
+    motionPermissionState = "unavailable";
+    return false;
+  }
+
+  if (typeof DeviceMotionEvent.requestPermission !== "function") {
+    motionPermissionState = "granted";
+    return true;
+  }
+
+  if (motionPermissionState === "granted") {
+    return true;
+  }
+
+  try {
+    const permission = await DeviceMotionEvent.requestPermission();
+    motionPermissionState = permission === "granted" ? "granted" : "denied";
+    return motionPermissionState === "granted";
+  } catch (error) {
+    motionPermissionState = "denied";
+    return false;
+  }
+}
+
+function stopMotionReactionDetection() {
+  if (motionListenerActive) {
+    window.removeEventListener("devicemotion", onMotionSample);
+    motionListenerActive = false;
+  }
+}
+
+function onMotionSample(event) {
+  if (!isTapMode() || phase !== "go" || goTime === null || motionDetected) {
+    return;
+  }
+
+  const accel = event.acceleration;
+  if (!accel) {
+    return;
+  }
+
+  const x = accel.x || 0;
+  const y = accel.y || 0;
+  const z = accel.z || 0;
+  const magnitude = Math.sqrt(x * x + y * y + z * z);
+
+  if (magnitude < 1.9) {
+    return;
+  }
+
+  motionDetected = true;
+  stopMotionReactionDetection();
+
+  const reactionMs = Math.max(0, Math.round(performance.now() - goTime));
+  setReaction(reactionMs);
+  phase = "result";
+  isHolding = false;
+  thumbButton.classList.remove("holding");
+  thumbLabel.textContent = "THUMB";
+  updateStatus("Nice start");
+  vibrate(50);
+}
+
+function startMotionReactionDetection() {
+  stopMotionReactionDetection();
+  motionDetected = false;
+  if (!isTapMode() || motionPermissionState !== "granted") {
+    return;
+  }
+
+  motionListenerActive = true;
+  window.addEventListener("devicemotion", onMotionSample);
 }
 
 function openSettings() {
@@ -269,6 +351,7 @@ function playGunshotCue() {
 function clearCountdown() {
   countdownTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
   countdownTimeouts = [];
+  stopMotionReactionDetection();
 
   if ("speechSynthesis" in window) {
     window.speechSynthesis.cancel();
@@ -335,6 +418,13 @@ function startCountdown() {
       playGunshotCue();
     }
     vibrate([45, 25, 45]);
+
+    if (isTapMode()) {
+      startMotionReactionDetection();
+      if (motionPermissionState !== "granted") {
+        updateStatus("GO! (motion off)", "go");
+      }
+    }
   }, hasCustomSample ? markDelay + timingSettings.sampleGunshotOffsetMs : goDelay);
 
   countdownTimeouts.push(markTimeoutId, setTimeoutId, goTimeoutId);
@@ -394,13 +484,14 @@ function onHoldEnd(event) {
   }
 }
 
-function onTapModePress(event) {
+async function onTapModePress(event) {
   event.preventDefault();
   if (!isTapMode()) {
     return;
   }
 
   if (phase === "ready" || phase === "result" || phase === "false") {
+    await ensureMotionPermission();
     isHolding = true;
     thumbButton.classList.add("holding");
     thumbLabel.textContent = "ARMED";
@@ -426,6 +517,7 @@ function onTapModePress(event) {
     const reactionMs = Math.max(0, Math.round(performance.now() - goTime));
     setReaction(reactionMs);
     phase = "result";
+    stopMotionReactionDetection();
     isHolding = false;
     thumbButton.classList.remove("holding");
     thumbLabel.textContent = "THUMB";
@@ -439,6 +531,7 @@ function resetSession() {
   phase = "ready";
   isHolding = false;
   goTime = null;
+  motionDetected = false;
   thumbButton.classList.remove("holding");
   thumbLabel.textContent = "THUMB";
   setReaction(null);
